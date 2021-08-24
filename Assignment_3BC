@@ -1,0 +1,76 @@
+pragma solidity ^0.8.0;
+
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+//import "https://github.com/ConsenSysMesh/openzeppelin-solidity/blob/master/contracts/crowdsale/validation/TimedCrowdsale.sol";
+
+
+contract Assigment_3B is ERC20,Ownable,ERC20Burnable{
+   
+    using SafeMath for uint;
+    uint256 public cap;
+    uint256 Rate_perETH;
+    uint initialSupply;
+    mapping (address => bool) private rate_Managers;
+    
+    
+    constructor() ERC20("Assigment_3B_Token","A3B"){
+        rate_Managers[msg.sender] = true;
+        initialSupply = 1000 * 10 ** decimals();
+        Rate_perETH=100;
+        cap = initialSupply * Rate_perETH;
+        _mint(msg.sender,initialSupply);
+        
+    }
+    function Purchase_Tokens() public payable {
+        require(msg.value > 0 && msg.sender != address(0), "Zero Ether or invalid address");
+        //require(msg.value * Rate_perETH < _balances[owner] , "Coins not availble");
+         
+        _mint(msg.sender,msg.value*Rate_perETH);
+        unchecked{
+        _transfer(owner(),msg.sender,msg.value*Rate_perETH);
+        }
+        cap = initialSupply * Rate_perETH;
+    }
+    // Current Rate of the token
+    function Current_Rate() public view returns (uint256) {
+        return Rate_perETH;
+    }
+    
+    //Only Allowed by owner can update the rate
+    function Update_Rate(uint8 newRate) public returns (bool)  {
+        bool state = rate_Managers[msg.sender];
+        if(state == true){
+        Rate_perETH = newRate;
+        cap = initialSupply * Rate_perETH;
+        return true;
+        }else{
+        return false;}
+        
+    }
+    // Add Price Controler List
+    function Add_price_managers (address pm) public onlyOwner {
+        rate_Managers[pm] = true;
+    }
+    
+    // Disable Price Controler List
+    function Disable_price_managers (address pm) public onlyOwner {
+        rate_Managers[pm] = false;
+    }
+    
+    function return_Tokenks(uint R_Tokens) public {
+        require(balanceOf(msg.sender) >= R_Tokens, "Low Blance")  ;
+        address payable own=payable(msg.sender);
+        own.transfer(R_Tokens / Rate_perETH);
+        unchecked{
+        _transfer(msg.sender,owner(),R_Tokens);
+        }
+    }
+    
+    function Con_wei() public view returns (uint256){
+    return address(this).balance;
+    }
+    
+}
